@@ -210,20 +210,12 @@ vercel
 Estudante de Análise e Desenvolvimento de Sistemas  
 SENAI Roberto Mange - 2º Semestre
 
-## 📄 Licença
-
-Este projeto está sob a licença MIT.
 
 ## 🤝 Contribuições
 
 Este é um projeto acadêmico, mas sugestões são bem-vindas!
 
-## 📞 Suporte
-
-Em caso de dúvidas:
-- Abra uma issue no GitHub
-- Entre em contato: seu-email@example.com
 
 ---
 
-**Desenvolvido com ❤️ para o projeto final de Desenvolvimento Backend - SENAI Roberto Mange**
+**Desenvolvido com ❤️ para o projeto final de Desenvolvimento Back e Front - SENAI Roberto Mange**
