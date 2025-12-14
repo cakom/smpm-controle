@@ -1,0 +1,246 @@
+{
+  "name": "SMPM - Sistema de Manutenção Preventiva",
+  "description": "Collection completa da API SMPM para testes",
+  "_type": "export",
+  "__export_format": 4,
+  "resources": [
+    {
+      "_id": "env_1",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:4000/api",
+        "token": ""
+      }
+    },
+    {
+      "_id": "req_register",
+      "_type": "request",
+      "name": "1. Register User",
+      "method": "POST",
+      "url": "{{ base_url }}/auth/register",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@example.com\",\n  \"senha\": \"senha123\",\n  \"role\": \"admin\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_login",
+      "_type": "request",
+      "name": "2. Login",
+      "method": "POST",
+      "url": "{{ base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"joao@example.com\",\n  \"senha\": \"senha123\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_get_me",
+      "_type": "request",
+      "name": "3. Get Current User",
+      "method": "GET",
+      "url": "{{ base_url }}/auth/me",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_create_machine",
+      "_type": "request",
+      "name": "4. Create Machine",
+      "method": "POST",
+      "url": "{{ base_url }}/machines",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Torno CNC 1000\",\n  \"tipo\": \"Torno\",\n  \"setor\": \"Usinagem\",\n  \"status\": \"Ativa\",\n  \"fabricante\": \"Romi\",\n  \"modelo\": \"CNC-1000\",\n  \"numeroSerie\": \"TRN-2024-001\",\n  \"dataAquisicao\": \"2024-01-15\",\n  \"proximaManutencao\": \"2024-12-20\",\n  \"frequenciaManutencao\": 30,\n  \"observacoes\": \"Máquina de alta precisão\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_list_machines",
+      "_type": "request",
+      "name": "5. List All Machines",
+      "method": "GET",
+      "url": "{{ base_url }}/machines",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_get_machine",
+      "_type": "request",
+      "name": "6. Get Machine by ID",
+      "method": "GET",
+      "url": "{{ base_url }}/machines/MACHINE_ID_HERE",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_update_machine",
+      "_type": "request",
+      "name": "7. Update Machine",
+      "method": "PUT",
+      "url": "{{ base_url }}/machines/MACHINE_ID_HERE",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"Em Manutenção\",\n  \"observacoes\": \"Manutenção preventiva em andamento\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_create_maintenance",
+      "_type": "request",
+      "name": "8. Create Maintenance",
+      "method": "POST",
+      "url": "{{ base_url }}/maintenances",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"maquina\": \"MACHINE_ID_HERE\",\n  \"tipo\": \"Preventiva\",\n  \"status\": \"Pendente\",\n  \"prioridade\": \"Alta\",\n  \"dataAgendada\": \"2024-12-20T09:00:00Z\",\n  \"descricao\": \"Lubrificação geral e verificação de componentes\",\n  \"observacoes\": \"Verificar desgaste das correias\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_list_maintenances",
+      "_type": "request",
+      "name": "9. List All Maintenances",
+      "method": "GET",
+      "url": "{{ base_url }}/maintenances",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_get_kpis",
+      "_type": "request",
+      "name": "10. Get KPIs",
+      "method": "GET",
+      "url": "{{ base_url }}/maintenances/kpis",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_machine_history",
+      "_type": "request",
+      "name": "11. Get Machine History",
+      "method": "GET",
+      "url": "{{ base_url }}/maintenances/machine/MACHINE_ID_HERE",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_test_invalid_token",
+      "_type": "request",
+      "name": "12. Test Invalid Token (Error)",
+      "method": "GET",
+      "url": "{{ base_url }}/machines",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer token_invalido_123"
+        }
+      ]
+    },
+    {
+      "_id": "req_test_no_token",
+      "_type": "request",
+      "name": "13. Test No Token (Error)",
+      "method": "GET",
+      "url": "{{ base_url }}/machines"
+    },
+    {
+      "_id": "req_delete_machine_nonexistent",
+      "_type": "request",
+      "name": "14. Delete Nonexistent Machine (Error)",
+      "method": "DELETE",
+      "url": "{{ base_url }}/machines/507f1f77bcf86cd799439011",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_create_incomplete_data",
+      "_type": "request",
+      "name": "15. Create Machine Incomplete Data (Error)",
+      "method": "POST",
+      "url": "{{ base_url }}/machines",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Máquina Teste\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ token }}"
+        }
+      ]
+    }
+  ]
+}
