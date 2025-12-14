@@ -1,49 +1,42 @@
 const express = require('express');
 const router = express.Router();
-const {
-  criarMaquina,
-  listarMaquinas,
-  buscarMaquina,
-  atualizarMaquina,
-  deletarMaquina
-} = require('../controllers/machineController');
+const { 
+  register, 
+  login, 
+  getMe, 
+  updateMe, 
+  updatePassword,
+  listarUsuarios,
+  buscarUsuario,
+  criarUsuario,
+  atualizarUsuario,
+  deletarUsuario
+} = require('../controllers/authController');
 const { proteger, autorizar } = require('../middleware/auth');
 
-// Todas as rotas requerem autenticação
-router.use(proteger);
+// ============================================
+// ROTAS PÚBLICAS
+// ============================================
+router.post('/register', register);
+router.post('/login', login);
 
-/**
- * @swagger
- * /api/machines:
- *   get:
- *     summary: Listar todas as máquinas
- *     tags: [Machines]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *       - in: query
- *         name: setor
- *         schema:
- *           type: string
- *       - in: query
- *         name: tipo
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Lista de máquinas
- */
-router.route('/')
-  .get(listarMaquinas)
-  .post(autorizar('admin', 'tecnico'), criarMaquina);
+// ============================================
+// ROTAS DO USUÁRIO LOGADO
+// ============================================
+router.get('/me', proteger, getMe);
+router.put('/me', proteger, updateMe);
+router.put('/updatepassword', proteger, updatePassword);
 
-router.route('/:id')
-  .get(buscarMaquina)
-  .put(autorizar('admin', 'tecnico'), atualizarMaquina)
-  .delete(autorizar('admin'), deletarMaquina);
+// ============================================
+// CRUD COMPLETO DE USUÁRIOS (ADMIN APENAS)
+// ============================================
+router.route('/users')
+  .get(proteger, autorizar('admin'), listarUsuarios)
+  .post(proteger, autorizar('admin'), criarUsuario);
+
+router.route('/users/:id')
+  .get(proteger, autorizar('admin'), buscarUsuario)
+  .put(proteger, autorizar('admin'), atualizarUsuario)
+  .delete(proteger, autorizar('admin'), deletarUsuario);
 
 module.exports = router;

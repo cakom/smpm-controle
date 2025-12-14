@@ -16,9 +16,22 @@ const PORT = process.env.PORT || 4000;
 connectDatabase();
 
 // Middlewares
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware para logging de requisições
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // Rota de teste
 app.get('/', (req, res) => {
@@ -37,6 +50,16 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health check
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Documentação Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
@@ -52,6 +75,7 @@ app.use((req, res) => {
     message: `Rota ${req.method} ${req.path} não encontrada`,
     availableRoutes: [
       'GET /',
+      'GET /health',
       'GET /api-docs',
       'POST /api/auth/register',
       'POST /api/auth/login',
@@ -67,7 +91,50 @@ app.use((req, res) => {
 
 // Tratamento de erros global
 app.use((err, req, res, next) => {
-  console.error('❌ Erro:', err.stack);
+  console.error('❌ Erro:', err);
+  
+  // Erro de validação do Mongoose
+  if (err.name === 'ValidationError') {
+    const errors = Object.values(err.errors).map(e => e.message);
+    return res.status(400).json({
+      success: false,
+      message: 'Erro de validação',
+      errors
+    });
+  }
+  
+  // Erro de cast (ID inválido)
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      success: false,
+      message: 'ID inválido fornecido'
+    });
+  }
+  
+  // Erro de duplicação (unique)
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyPattern)[0];
+    return res.status(400).json({
+      success: false,
+      message: `${field} já está em uso`
+    });
+  }
+  
+  // Erro JWT
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      success: false,
+      message: 'Token inválido'
+    });
+  }
+  
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      success: false,
+      message: 'Token expirado'
+    });
+  }
+  
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Erro interno do servidor',
@@ -82,17 +149,17 @@ const server = app.listen(PORT, () => {
 ║                                                    ║
 ║   🚀 SMPM BACKEND SERVER RUNNING                   ║
 ║                                                    ║
-║   📡 Port: ${PORT}                                  ║
-║   🌍 Environment: ${process.env.NODE_ENV}          ║
+║   📡 Port: ${PORT.toString().padEnd(42)}║
+║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(34)}║
 ║   🗄️  Database: MongoDB Atlas                      ║
 ║                                                    ║
 ║   📚 API Docs:                                     ║
-║      http://localhost:${PORT}/api-docs             ║
+║      http://localhost:${PORT}/api-docs             ${PORT.toString().length === 4 ? ' ' : ''}║
 ║                                                    ║
 ║   🔗 Endpoints:                                    ║
-║      http://localhost:${PORT}/api/auth             ║
-║      http://localhost:${PORT}/api/machines         ║
-║      http://localhost:${PORT}/api/maintenances     ║
+║      http://localhost:${PORT}/api/auth             ${PORT.toString().length === 4 ? ' ' : ''}║
+║      http://localhost:${PORT}/api/machines         ${PORT.toString().length === 4 ? ' ' : ''}║
+║      http://localhost:${PORT}/api/maintenances     ${PORT.toString().length === 4 ? ' ' : ''}║
 ║                                                    ║
 ║   👨‍💻 Desenvolvido por: Gabriela                   ║
 ║   🏫 SENAI Roberto Mange - ADS 2º Semestre         ║

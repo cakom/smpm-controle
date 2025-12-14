@@ -14,22 +14,11 @@ const { proteger, autorizar } = require('../middleware/auth');
 // Todas as rotas requerem autenticação
 router.use(proteger);
 
-/**
- * @swagger
- * /api/maintenances/kpis:
- *   get:
- *     summary: Obter KPIs de manutenção
- *     tags: [Maintenances]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: KPIs de manutenção
- */
+// Rotas especiais (devem vir antes de /:id)
 router.get('/kpis', obterKPIs);
-
 router.get('/machine/:machineId', historicoMaquina);
 
+// Rotas principais
 router.route('/')
   .get(listarManutencoes)
   .post(autorizar('admin', 'tecnico'), criarManutencao);

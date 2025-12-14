@@ -1,3 +1,4 @@
+cat > /home/claude/SMPM-backend-fixed/Test.connection.js << 'EOF'
 // Teste de conexão com MongoDB Atlas
 require('dotenv').config();
 const mongoose = require('mongoose');
@@ -7,11 +8,8 @@ async function testarConexao() {
     console.log('🔄 Tentando conectar ao MongoDB Atlas...');
     console.log(`📡 URI: ${process.env.MONGODB_URI.replace(/:[^:]*@/, ':****@')}`); // Oculta senha
     
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000 // Timeout de 5 segundos
-    });
+    // Mongoose 8.x não precisa de opções deprecated
+    await mongoose.connect(process.env.MONGODB_URI);
     
     console.log('✅ Conexão com MongoDB Atlas estabelecida com sucesso!');
     console.log(`🏢 Database: ${mongoose.connection.name}`);

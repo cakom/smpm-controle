@@ -1,5 +1,11 @@
 const Maintenance = require('../models/Maintenance');
 const Machine = require('../models/Machine');
+const mongoose = require('mongoose');
+
+// Validar ObjectId
+const validarObjectId = (id) => {
+  return mongoose.Types.ObjectId.isValid(id);
+};
 
 // @desc    Criar nova manutenção
 // @route   POST /api/maintenances
@@ -7,6 +13,14 @@ const Machine = require('../models/Machine');
 exports.criarManutencao = async (req, res) => {
   try {
     req.body.criadoPor = req.usuario.id;
+    
+    // Validar ObjectId da máquina
+    if (!validarObjectId(req.body.maquina)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de máquina inválido'
+      });
+    }
     
     // Verificar se máquina existe
     const maquina = await Machine.findById(req.body.maquina);
@@ -17,12 +31,32 @@ exports.criarManutencao = async (req, res) => {
       });
     }
     
+    // Validar técnico se fornecido
+    if (req.body.tecnicoResponsavel && !validarObjectId(req.body.tecnicoResponsavel)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de técnico inválido'
+      });
+    }
+    
     const manutencao = await Maintenance.create(req.body);
+    
+    // Popular referências
+    await manutencao.populate([
+      { path: 'maquina', select: 'nome tipo setor' },
+      { path: 'tecnicoResponsavel', select: 'nome email' },
+      { path: 'criadoPor', select: 'nome email' }
+    ]);
     
     // Atualizar última manutenção da máquina se status for concluída
     if (req.body.status === 'Concluída') {
       await Machine.findByIdAndUpdate(req.body.maquina, {
-        ultimaManutencao: req.body.dataConclusao || new Date()
+        ultimaManutencao: req.body.dataConclusao || new Date(),
+        status: 'Ativa'
+      });
+    } else if (req.body.status === 'Em Andamento') {
+      await Machine.findByIdAndUpdate(req.body.maquina, {
+        status: 'Em Manutenção'
       });
     }
     
@@ -32,10 +66,20 @@ exports.criarManutencao = async (req, res) => {
       data: manutencao
     });
   } catch (error) {
+    // Erro de validação
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Erro de validação',
+        errors
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Erro ao criar manutenção',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -45,36 +89,62 @@ exports.criarManutencao = async (req, res) => {
 // @access  Private
 exports.listarManutencoes = async (req, res) => {
   try {
-    const { maquina, status, tipo, dataInicio, dataFim } = req.query;
+    const { maquina, status, tipo, prioridade, dataInicio, dataFim, page = 1, limit = 10 } = req.query;
     let query = {};
     
     // Filtros
-    if (maquina) query.maquina = maquina;
+    if (maquina) {
+      if (!validarObjectId(maquina)) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de máquina inválido'
+        });
+      }
+      query.maquina = maquina;
+    }
+    
     if (status) query.status = status;
     if (tipo) query.tipo = tipo;
+    if (prioridade) query.prioridade = prioridade;
+    
     if (dataInicio && dataFim) {
       query.dataAgendada = {
         $gte: new Date(dataInicio),
         $lte: new Date(dataFim)
       };
+    } else if (dataInicio) {
+      query.dataAgendada = { $gte: new Date(dataInicio) };
+    } else if (dataFim) {
+      query.dataAgendada = { $lte: new Date(dataFim) };
     }
     
-    const manutencoes = await Maintenance.find(query)
-      .populate('maquina', 'nome tipo setor')
-      .populate('tecnicoResponsavel', 'nome email')
-      .populate('criadoPor', 'nome email')
-      .sort({ dataAgendada: -1 });
+    // Paginação
+    const skip = (page - 1) * limit;
+    
+    const [manutencoes, total] = await Promise.all([
+      Maintenance.find(query)
+        .populate('maquina', 'nome tipo setor status')
+        .populate('tecnicoResponsavel', 'nome email')
+        .populate('criadoPor', 'nome email')
+        .sort({ dataAgendada: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Maintenance.countDocuments(query)
+    ]);
     
     res.status(200).json({
       success: true,
       count: manutencoes.length,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
       data: manutencoes
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Erro ao listar manutenções',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -84,6 +154,14 @@ exports.listarManutencoes = async (req, res) => {
 // @access  Private
 exports.buscarManutencao = async (req, res) => {
   try {
+    // Validar ObjectId
+    if (!validarObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de manutenção inválido'
+      });
+    }
+    
     const manutencao = await Maintenance.findById(req.params.id)
       .populate('maquina')
       .populate('tecnicoResponsavel', 'nome email')
@@ -104,7 +182,7 @@ exports.buscarManutencao = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erro ao buscar manutenção',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -114,11 +192,34 @@ exports.buscarManutencao = async (req, res) => {
 // @access  Private
 exports.atualizarManutencao = async (req, res) => {
   try {
+    // Validar ObjectId
+    if (!validarObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de manutenção inválido'
+      });
+    }
+    
+    // Não permitir atualizar criadoPor
+    delete req.body.criadoPor;
+    
+    // Validar técnico se fornecido
+    if (req.body.tecnicoResponsavel && !validarObjectId(req.body.tecnicoResponsavel)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de técnico inválido'
+      });
+    }
+    
     const manutencao = await Maintenance.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('maquina');
+    ).populate([
+      { path: 'maquina' },
+      { path: 'tecnicoResponsavel', select: 'nome email' },
+      { path: 'criadoPor', select: 'nome email' }
+    ]);
     
     if (!manutencao) {
       return res.status(404).json({
@@ -127,11 +228,22 @@ exports.atualizarManutencao = async (req, res) => {
       });
     }
     
-    // Atualizar última manutenção da máquina se status mudou para concluída
-    if (req.body.status === 'Concluída' && manutencao.maquina) {
-      await Machine.findByIdAndUpdate(manutencao.maquina._id, {
-        ultimaManutencao: manutencao.dataConclusao || new Date()
-      });
+    // Atualizar status da máquina baseado no status da manutenção
+    if (manutencao.maquina) {
+      if (req.body.status === 'Concluída') {
+        await Machine.findByIdAndUpdate(manutencao.maquina._id, {
+          ultimaManutencao: manutencao.dataConclusao || new Date(),
+          status: 'Ativa'
+        });
+      } else if (req.body.status === 'Em Andamento') {
+        await Machine.findByIdAndUpdate(manutencao.maquina._id, {
+          status: 'Em Manutenção'
+        });
+      } else if (req.body.status === 'Cancelada') {
+        await Machine.findByIdAndUpdate(manutencao.maquina._id, {
+          status: 'Ativa'
+        });
+      }
     }
     
     res.status(200).json({
@@ -140,10 +252,20 @@ exports.atualizarManutencao = async (req, res) => {
       data: manutencao
     });
   } catch (error) {
+    // Erro de validação
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Erro de validação',
+        errors
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Erro ao atualizar manutenção',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -153,6 +275,14 @@ exports.atualizarManutencao = async (req, res) => {
 // @access  Private/Admin
 exports.deletarManutencao = async (req, res) => {
   try {
+    // Validar ObjectId
+    if (!validarObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de manutenção inválido'
+      });
+    }
+    
     const manutencao = await Maintenance.findByIdAndDelete(req.params.id);
     
     if (!manutencao) {
@@ -171,7 +301,7 @@ exports.deletarManutencao = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erro ao deletar manutenção',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -181,8 +311,17 @@ exports.deletarManutencao = async (req, res) => {
 // @access  Private
 exports.historicoMaquina = async (req, res) => {
   try {
+    // Validar ObjectId
+    if (!validarObjectId(req.params.machineId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de máquina inválido'
+      });
+    }
+    
     const manutencoes = await Maintenance.find({ maquina: req.params.machineId })
       .populate('tecnicoResponsavel', 'nome email')
+      .populate('criadoPor', 'nome email')
       .sort({ dataAgendada: -1 });
     
     res.status(200).json({
@@ -194,7 +333,7 @@ exports.historicoMaquina = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erro ao buscar histórico',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -204,49 +343,89 @@ exports.historicoMaquina = async (req, res) => {
 // @access  Private
 exports.obterKPIs = async (req, res) => {
   try {
-    const totalManutencoes = await Maintenance.countDocuments();
-    const pendentes = await Maintenance.countDocuments({ status: 'Pendente' });
-    const emAndamento = await Maintenance.countDocuments({ status: 'Em Andamento' });
-    const concluidas = await Maintenance.countDocuments({ status: 'Concluída' });
+    const [
+      totalManutencoes,
+      pendentes,
+      emAndamento,
+      concluidas,
+      canceladas,
+      atrasadas,
+      proximos7dias,
+      custoResult
+    ] = await Promise.all([
+      Maintenance.countDocuments(),
+      Maintenance.countDocuments({ status: 'Pendente' }),
+      Maintenance.countDocuments({ status: 'Em Andamento' }),
+      Maintenance.countDocuments({ status: 'Concluída' }),
+      Maintenance.countDocuments({ status: 'Cancelada' }),
+      Maintenance.countDocuments({
+        status: { $in: ['Pendente', 'Em Andamento'] },
+        dataAgendada: { $lt: new Date() }
+      }),
+      Maintenance.countDocuments({
+        status: 'Pendente',
+        dataAgendada: {
+          $gte: new Date(),
+          $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        }
+      }),
+      Maintenance.aggregate([
+        { $match: { status: 'Concluída' } },
+        { $group: { _id: null, total: { $sum: '$custoTotal' } } }
+      ])
+    ]);
     
-    // Manutenções atrasadas
-    const atrasadas = await Maintenance.countDocuments({
-      status: { $in: ['Pendente', 'Em Andamento'] },
-      dataAgendada: { $lt: new Date() }
-    });
-    
-    // Próximas 7 dias
-    const proximos7dias = await Maintenance.countDocuments({
-      status: 'Pendente',
-      dataAgendada: {
-        $gte: new Date(),
-        $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    // KPIs por tipo
+    const porTipo = await Maintenance.aggregate([
+      {
+        $group: {
+          _id: '$tipo',
+          count: { $sum: 1 }
+        }
       }
-    });
+    ]);
     
-    // Custos
-    const custoTotal = await Maintenance.aggregate([
-      { $match: { status: 'Concluída' } },
-      { $group: { _id: null, total: { $sum: '$custoTotal' } } }
+    // KPIs por prioridade
+    const porPrioridade = await Maintenance.aggregate([
+      {
+        $group: {
+          _id: '$prioridade',
+          count: { $sum: 1 }
+        }
+      }
     ]);
     
     res.status(200).json({
       success: true,
       data: {
-        total: totalManutencoes,
-        pendentes,
-        emAndamento,
-        concluidas,
-        atrasadas,
-        proximos7dias,
-        custoTotal: custoTotal[0]?.total || 0
+        totais: {
+          total: totalManutencoes,
+          pendentes,
+          emAndamento,
+          concluidas,
+          canceladas,
+          atrasadas,
+          proximos7dias
+        },
+        porTipo: porTipo.reduce((acc, curr) => {
+          acc[curr._id] = curr.count;
+          return acc;
+        }, {}),
+        porPrioridade: porPrioridade.reduce((acc, curr) => {
+          acc[curr._id] = curr.count;
+          return acc;
+        }, {}),
+        financeiro: {
+          custoTotal: custoResult[0]?.total || 0,
+          custoPorManutencao: concluidas > 0 ? (custoResult[0]?.total || 0) / concluidas : 0
+        }
       }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Erro ao obter KPIs',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
