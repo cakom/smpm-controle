@@ -1,7 +1,8 @@
 <template>
-  <div v-if="isLoginPage">
-    <router-view />
-  </div>
+  <!-- Login/Register sem layout -->
+  <router-view v-if="isAuthPage" />
+  
+  <!-- Layout principal com sidebar -->
   <div v-else class="min-h-screen bg-gray-50">
     <Navbar @toggle-sidebar="sidebarOpen = !sidebarOpen" />
     <Sidebar :isOpen="sidebarOpen" @close="sidebarOpen = false" />
@@ -23,11 +24,9 @@ import Sidebar from '@/components/common/Sidebar.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
-
 const sidebarOpen = ref(false)
-const isLoginPage = computed(() => route.path === '/login')
 
-onMounted(() => {
-  authStore.initAuth()
-})
+const isAuthPage = computed(() => ['/login', '/register'].includes(route.path))
+
+onMounted(() => authStore.initAuth())
 </script>

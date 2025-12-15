@@ -2,70 +2,34 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
-// Criar instância do axios
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  headers: { 'Content-Type': 'application/json' }
 })
 
-// Interceptor de requisição - adicionar token
-api.interceptors.request.use(
-  (config) => {
-    const authStore = useAuthStore()
-    const token = authStore.token
-    
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
+// Adicionar token em todas requisições
+api.interceptors.request.use((config) => {
+  const authStore = useAuthStore()
+  if (authStore.token) {
+    config.headers.Authorization = `Bearer ${authStore.token}`
   }
-)
+  return config
+})
 
-// Interceptor de resposta - tratar erros
+// Tratar erros
 api.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   (error) => {
-    if (error.response) {
-      // Erro com resposta do servidor
-      const status = error.response.status
-      
-      if (status === 401) {
-        // Token inválido ou expirado
-        const authStore = useAuthStore()
-        authStore.logout()
-        router.push('/login')
-      } else if (status === 403) {
-        // Sem permissão
-        console.error('Acesso negado')
-      } else if (status === 404) {
-        // Não encontrado
-        console.error('Recurso não encontrado')
-      } else if (status >= 500) {
-        // Erro do servidor
-        console.error('Erro no servidor')
-      }
-    } else if (error.request) {
-      // Requisição feita mas sem resposta
-      console.error('Servidor não responde')
-    } else {
-      // Erro ao configurar requisição
-      console.error('Erro na requisição:', error.message)
+    if (error.response?.status === 401) {
+      const authStore = useAuthStore()
+      authStore.logout()
+      router.push('/login')
     }
-    
     return Promise.reject(error)
   }
 )
 
-// Exportar métodos
 export default {
   // Auth
   auth: {
@@ -90,7 +54,6 @@ export default {
     create: (data) => api.post('/maintenances', data),
     update: (id, data) => api.put(`/maintenances/${id}`, data),
     delete: (id) => api.delete(`/maintenances/${id}`),
-    getKpis: () => api.get('/maintenances/kpis'),
-    getMachineHistory: (machineId) => api.get(`/maintenances/machine/${machineId}`)
+    getKpis: () => api.get('/maintenances/kpis')
   }
 }

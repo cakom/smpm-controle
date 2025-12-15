@@ -1,173 +1,65 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-6">
-    <!-- Nome e Tipo -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <form @submit.prevent="$emit('submit', form)" class="space-y-4">
+    <div class="grid grid-cols-2 gap-4">
       <div>
-        <label class="label">
-          Nome da Máquina <span class="text-red-500">*</span>
-        </label>
-        <input
-          v-model="formData.nome"
-          type="text"
-          class="input"
-          placeholder="Ex: Torno CNC 1000"
-          required
-        />
+        <label class="label">Nome *</label>
+        <input v-model="form.nome" type="text" class="input" required />
       </div>
-
       <div>
-        <label class="label">
-          Tipo <span class="text-red-500">*</span>
-        </label>
-        <select v-model="formData.tipo" class="input" required>
-          <option value="">Selecione o tipo</option>
-          <option v-for="tipo in MACHINE_TYPES" :key="tipo" :value="tipo">
-            {{ tipo }}
-          </option>
+        <label class="label">Tipo *</label>
+        <select v-model="form.tipo" class="input" required>
+          <option value="">Selecione</option>
+          <option v-for="t in MACHINE_TYPES" :key="t" :value="t">{{ t }}</option>
         </select>
       </div>
     </div>
 
-    <!-- Setor e Status -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-4">
       <div>
-        <label class="label">
-          Setor <span class="text-red-500">*</span>
-        </label>
-        <input
-          v-model="formData.setor"
-          type="text"
-          class="input"
-          placeholder="Ex: Usinagem"
-          required
-        />
+        <label class="label">Setor *</label>
+        <input v-model="form.setor" type="text" class="input" required />
       </div>
-
       <div>
-        <label class="label">
-          Status <span class="text-red-500">*</span>
-        </label>
-        <select v-model="formData.status" class="input" required>
-          <option v-for="(status, key) in MACHINE_STATUS" :key="key" :value="status.value">
-            {{ status.label }}
-          </option>
+        <label class="label">Status *</label>
+        <select v-model="form.status" class="input" required>
+          <option v-for="(s, k) in MACHINE_STATUS" :key="k" :value="s.value">{{ s.label }}</option>
         </select>
       </div>
     </div>
 
-    <!-- Fabricante e Modelo -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-4">
       <div>
         <label class="label">Fabricante</label>
-        <input
-          v-model="formData.fabricante"
-          type="text"
-          class="input"
-          placeholder="Ex: Romi"
-        />
+        <input v-model="form.fabricante" type="text" class="input" />
       </div>
-
       <div>
         <label class="label">Modelo</label>
-        <input
-          v-model="formData.modelo"
-          type="text"
-          class="input"
-          placeholder="Ex: CNC-1000"
-        />
+        <input v-model="form.modelo" type="text" class="input" />
       </div>
     </div>
 
-    <!-- Número de Série e Data de Aquisição -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-4">
       <div>
-        <label class="label">Número de Série</label>
-        <input
-          v-model="formData.numeroSerie"
-          type="text"
-          class="input"
-          placeholder="Ex: TRN-2024-001"
-        />
+        <label class="label">Nº Série</label>
+        <input v-model="form.numeroSerie" type="text" class="input" />
       </div>
-
       <div>
-        <label class="label">Data de Aquisição</label>
-        <input
-          v-model="formData.dataAquisicao"
-          type="date"
-          class="input"
-        />
+        <label class="label">Próxima Manutenção *</label>
+        <input v-model="form.proximaManutencao" type="date" class="input" required />
       </div>
     </div>
 
-    <!-- Próxima Manutenção e Frequência -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="label">
-          Próxima Manutenção <span class="text-red-500">*</span>
-        </label>
-        <input
-          v-model="formData.proximaManutencao"
-          type="date"
-          class="input"
-          required
-        />
-      </div>
-
-      <div>
-        <label class="label">
-          Frequência de Manutenção (dias)
-        </label>
-        <input
-          v-model.number="formData.frequenciaManutencao"
-          type="number"
-          class="input"
-          placeholder="30"
-          min="1"
-        />
-      </div>
-    </div>
-
-    <!-- Observações -->
     <div>
       <label class="label">Observações</label>
-      <textarea
-        v-model="formData.observacoes"
-        class="input resize-none"
-        rows="3"
-        placeholder="Informações adicionais sobre a máquina..."
-        maxlength="500"
-      ></textarea>
-      <p class="text-xs text-gray-500 mt-1">
-        {{ formData.observacoes?.length || 0 }}/500 caracteres
-      </p>
+      <textarea v-model="form.observacoes" class="input resize-none" rows="3" />
     </div>
 
-    <!-- Botões -->
     <div class="flex justify-end gap-3 pt-4">
-      <button
-        type="button"
-        @click="$emit('cancel')"
-        class="btn btn-outline"
-        :disabled="loading"
-      >
+      <button type="button" @click="$emit('cancel')" class="btn btn-outline" :disabled="loading">
         Cancelar
       </button>
-      <button
-        type="submit"
-        class="btn btn-primary"
-        :disabled="loading"
-      >
-        <svg
-          v-if="loading"
-          class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        {{ isEdit ? 'Atualizar' : 'Cadastrar' }}
+      <button type="submit" class="btn btn-primary" :disabled="loading">
+        {{ loading ? 'Salvando...' : (machine ? 'Atualizar' : 'Cadastrar') }}
       </button>
     </div>
   </form>
@@ -179,54 +71,31 @@ import { MACHINE_STATUS, MACHINE_TYPES } from '@/utils/constants'
 import { format } from 'date-fns'
 
 const props = defineProps({
-  machine: {
-    type: Object,
-    default: null
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  }
+  machine: { type: Object, default: null },
+  loading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['submit', 'cancel'])
+defineEmits(['submit', 'cancel'])
 
-const isEdit = ref(!!props.machine)
-
-const formData = ref({
-  nome: '',
-  tipo: '',
-  setor: '',
-  status: 'Ativa',
-  fabricante: '',
-  modelo: '',
-  numeroSerie: '',
-  dataAquisicao: '',
-  proximaManutencao: '',
-  frequenciaManutencao: 30,
-  observacoes: ''
+const form = ref({
+  nome: '', tipo: '', setor: '', status: 'Ativa',
+  fabricante: '', modelo: '', numeroSerie: '',
+  proximaManutencao: '', observacoes: ''
 })
 
-// Preencher formulário se estiver editando
-watch(() => props.machine, (machine) => {
-  if (machine) {
-    formData.value = {
-      nome: machine.nome || '',
-      tipo: machine.tipo || '',
-      setor: machine.setor || '',
-      status: machine.status || 'Ativa',
-      fabricante: machine.fabricante || '',
-      modelo: machine.modelo || '',
-      numeroSerie: machine.numeroSerie || '',
-      dataAquisicao: machine.dataAquisicao ? format(new Date(machine.dataAquisicao), 'yyyy-MM-dd') : '',
-      proximaManutencao: machine.proximaManutencao ? format(new Date(machine.proximaManutencao), 'yyyy-MM-dd') : '',
-      frequenciaManutencao: machine.frequenciaManutencao || 30,
-      observacoes: machine.observacoes || ''
+watch(() => props.machine, (m) => {
+  if (m) {
+    form.value = {
+      nome: m.nome || '',
+      tipo: m.tipo || '',
+      setor: m.setor || '',
+      status: m.status || 'Ativa',
+      fabricante: m.fabricante || '',
+      modelo: m.modelo || '',
+      numeroSerie: m.numeroSerie || '',
+      proximaManutencao: m.proximaManutencao ? format(new Date(m.proximaManutencao), 'yyyy-MM-dd') : '',
+      observacoes: m.observacoes || ''
     }
   }
 }, { immediate: true })
-
-const handleSubmit = () => {
-  emit('submit', formData.value)
-}
 </script>
