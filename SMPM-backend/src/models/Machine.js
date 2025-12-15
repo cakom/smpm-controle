@@ -90,11 +90,11 @@ const MachineSchema = new mongoose.Schema({
 });
 
 // Índices para melhorar performance em buscas
+// (numeroSerie já tem índice automático devido ao unique: true + sparse: true)
 MachineSchema.index({ nome: 1, setor: 1 });
 MachineSchema.index({ status: 1 });
 MachineSchema.index({ proximaManutencao: 1 });
 MachineSchema.index({ tipo: 1 });
-MachineSchema.index({ numeroSerie: 1 }, { sparse: true });
 
 // Virtual para verificar se manutenção está atrasada
 MachineSchema.virtual('manutencaoAtrasada').get(function() {

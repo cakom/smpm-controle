@@ -45,8 +45,8 @@ const UserSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices para melhorar performance
-UserSchema.index({ email: 1 });
+// Índice para melhorar performance em queries por role
+// (email já tem índice automático devido ao unique: true)
 UserSchema.index({ role: 1 });
 
 // Hash da senha antes de salvar
