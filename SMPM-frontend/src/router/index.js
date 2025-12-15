@@ -18,31 +18,31 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () => import('@/views/Home.vue'),
-    meta: { requiresAuth: true }
+    meta: { auth: true }
   },
   {
     path: '/machines',
     name: 'Machines',
     component: () => import('@/views/Machines.vue'),
-    meta: { requiresAuth: true }
+    meta: { auth: true }
   },
   {
     path: '/maintenances',
     name: 'Maintenances',
     component: () => import('@/views/Maintenances.vue'),
-    meta: { requiresAuth: true }
+    meta: { auth: true }
   },
   {
     path: '/calendar',
     name: 'Calendar',
     component: () => import('@/views/Calendar.vue'),
-    meta: { requiresAuth: true }
+    meta: { auth: true }
   },
   {
     path: '/reports',
     name: 'Reports',
     component: () => import('@/views/Reports.vue'),
-    meta: { requiresAuth: true }
+    meta: { auth: true }
   }
 ]
 
@@ -51,15 +51,13 @@ const router = createRouter({
   routes
 })
 
-// Navigation Guard
+// Proteção de rotas
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-  const requiresAuth = to.meta.requiresAuth
-  const isGuest = to.meta.guest
-
-  if (requiresAuth && !authStore.isAuthenticated) {
+  
+  if (to.meta.auth && !authStore.isAuthenticated) {
     next('/login')
-  } else if (isGuest && authStore.isAuthenticated) {
+  } else if (to.meta.guest && authStore.isAuthenticated) {
     next('/')
   } else {
     next()
